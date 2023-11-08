@@ -2,19 +2,50 @@ const fs = require('fs');
 const readline = require('readline');
 let length;
 const maybes = new Map();
+const filename = 'guesses';
+let filenameCount = 0;
 
 const r1 = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-r1.question('how long is the code? \n', (input) => {
-  // console.log(`code is  ${input} long`);
-  length = input;
-  console.log('give your best guess for the character at each position\n');
-  generateQuestions(length);
-});
+// create output txt file
+(function writeFile(data = '') {
+  fs.writeFile(
+    `${filename}${filenameCount > 0 ? `_${filenameCount}` : ''}.txt`,
+    data,
+    { flag: 'wx' },
+    (err) => {
+      if (err) {
+        if (err.code === 'EEXIST') {
+          ++filenameCount;
+          writeFile(data);
+        }
+      }
+    }
+  );
+})();
 
+// ask for length until a number is given
+(function askForLength(count = 0) {
+  r1.question(
+    `how long is the code? ${count ? 'please enter a number' : ''}\n`,
+    (input) => {
+      if (/[0-9]+/.test(input)) {
+        length = input;
+        console.log(
+          'give your best guess for the character at each position\n'
+        );
+        generateQuestions(length);
+      } else {
+        askForLength(count + 1);
+      }
+    }
+  );
+})();
+
+// keep asking for digits until the length of possibilities is traversed
 function generateQuestions(remainingQuestions) {
   if (!remainingQuestions) {
     generatePossibilities();
@@ -33,13 +64,17 @@ function generateQuestions(remainingQuestions) {
   }
 }
 
+// recursively generate possible combinations
 function generatePossibilities(currCode = '', index = 0) {
-  // console.log(maybes);
   if (index === maybes.size) {
-    fs.appendFile('guesses.txt', `${currCode}\n`, (err) => {
-      if (err) throw err;
-      console.log(currCode);
-    });
+    fs.appendFile(
+      `${filename}${filenameCount > 0 ? `_${filenameCount}` : ''}.txt`,
+      `${currCode}\n`,
+      (err) => {
+        if (err) throw err;
+        console.log(currCode);
+      }
+    );
   } else {
     if (!Array.isArray(maybes.get(index))) {
       generatePossibilities(currCode + maybes.get(index), index + 1);
@@ -50,27 +85,3 @@ function generatePossibilities(currCode = '', index = 0) {
     }
   }
 }
-
-// certain[0] = 'B';
-// certain[1] = 1;
-// certain[2] = 5;
-// maybes.set(3, [8, 9]);
-// maybes.set(4, [9, 3, 8, 0]);
-// certain[5] = 1;
-// maybes.set(6, [3, 8, 9, 2]);
-// maybes.set(7, [9, 5, 6, 8]);
-// certain[8] = 1;
-// certain[9] = 'J';
-// certain[10] = 6;
-// certain[11] = 7;
-// certain[12] = 'K';
-// certain[13] = 6;
-// certain[14] = 8;
-// certain[15] = 'S';
-
-// let currCode = '';
-// for (let i = 0; i < certain.length; i++) {
-//   if (certain[i] !== undefined) {
-//     maybes.set(i, certain[i]);
-//   }
-// }
